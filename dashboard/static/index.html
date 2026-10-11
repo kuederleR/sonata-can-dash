@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0c1117" />
+  <title>Sonata CAN</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <div class="brand">SONATA <span>LF</span></div>
+      <div id="conn" class="conn offline" title="Connection">—</div>
+    </header>
+
+    <section class="speed-block" aria-label="Vehicle speed">
+      <div class="speed-value"><span id="speed">--</span><span class="unit">km/h</span></div>
+      <div class="speed-sub">
+        <span>Gear <strong id="gear">—</strong></span>
+        <span>Throttle <strong id="throttle">—</strong></span>
+      </div>
+    </section>
+
+    <section class="signals" aria-label="Indicators">
+      <div class="ind" id="turn-l" aria-label="Left turn">◀</div>
+      <div class="ind-mid">
+        <div id="brake" class="brake off">BRAKE</div>
+      </div>
+      <div class="ind" id="turn-r" aria-label="Right turn">▶</div>
+    </section>
+
+    <section class="steer" aria-label="Steering">
+      <div class="steer-label">
+        <span>Steering</span>
+        <span><strong id="steer-angle">—</strong>°</span>
+      </div>
+      <div class="steer-track">
+        <div id="steer-needle" class="steer-needle"></div>
+        <div class="steer-center"></div>
+      </div>
+      <div class="steer-rate">Rate <strong id="steer-rate">—</strong> °/s</div>
+    </section>
+
+    <section class="wheels" aria-label="Wheel speeds">
+      <div class="wheel"><span class="wlab">FL</span><span id="wfl" class="wval">—</span></div>
+      <div class="wheel"><span class="wlab">FR</span><span id="wfr" class="wval">—</span></div>
+      <div class="wheel"><span class="wlab">RL</span><span id="wrl" class="wval">—</span></div>
+      <div class="wheel"><span class="wlab">RR</span><span id="wrr" class="wval">—</span></div>
+    </section>
+
+    <footer class="health" aria-label="Connection health">
+      <div><span class="hlab">IF</span> <span id="iface">—</span></div>
+      <div><span class="hlab">FPS</span> <span id="fps">—</span></div>
+      <div><span class="hlab">AGE</span> <span id="age">—</span></div>
+      <div><span class="hlab">CHK</span> <span id="chk">0</span></div>
+    </footer>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

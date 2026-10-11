@@ -1,0 +1,21 @@
+[Unit]
+Description=Sonata CAN Dashboard (listen-only reader + web UI)
+After=network.target
+# Ensure can0 is up before starting, e.g. a oneshot that runs:
+#   ip link set can0 up type can bitrate 500000 listen-only on
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=jetson
+WorkingDirectory=/home/jetson/sonata-can-dash
+Environment=PATH=/home/jetson/sonata-can-dash/.venv/bin:/usr/bin
+ExecStart=/home/jetson/sonata-can-dash/.venv/bin/python run.py --channel can0 --bitrate 500000 --host 0.0.0.0 --port 8080
+Restart=on-failure
+RestartSec=3
+
+# Hardening (optional)
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
