@@ -89,9 +89,9 @@ EMS16 = MessageSpec(
     signals=(SignalSpec("CF_Ems_AclAct", start_bit=62, length=2),),
 )
 
-# EMS11 carries engine speed (N). EMS12 carries accelerator pedal (PV_AV_CAN).
-# Do not use EMS12 BRAKE_ACT for pedal state — it latches / means ECU status,
-# not foot-brake; openpilot uses TCS13 DriverOverride==2 instead.
+# EMS11 carries engine speed (N). EMS12 carries pedal + BRAKE_ACT.
+# Prefer TCS13 DriverOverride==2 when present; many no-ADAS OBD taps
+# never see TCS13, so EMS12 BRAKE_ACT is the fallback (always assign 0/1).
 EMS11 = MessageSpec(
     can_id=0x316,
     name="EMS11",
@@ -101,7 +101,10 @@ EMS11 = MessageSpec(
 EMS12 = MessageSpec(
     can_id=0x329,
     name="EMS12",
-    signals=(SignalSpec("PV_AV_CAN", start_bit=48, length=8, factor=0.3906),),
+    signals=(
+        SignalSpec("BRAKE_ACT", start_bit=32, length=2),
+        SignalSpec("PV_AV_CAN", start_bit=48, length=8, factor=0.3906),
+    ),
 )
 
 EMS15 = MessageSpec(

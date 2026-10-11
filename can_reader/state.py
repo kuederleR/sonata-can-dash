@@ -29,6 +29,7 @@ class VehicleState:
 
     brake_light: bool | None = None
     driver_braking: bool | None = None
+    brake_source: str | None = None  # TCS13 | EMS12
     standstill: bool | None = None
     parking_brake: bool | None = None
     accel_long_mps2: float | None = None
@@ -81,6 +82,13 @@ class SharedState:
     def gear_source(self) -> str | None:
         with self._lock:
             return self.vehicle.gear_source
+
+    def msg_age_s(self, can_id: int) -> float | None:
+        with self._lock:
+            t = self._msg_last.get(can_id)
+            if t is None:
+                return None
+            return time.monotonic() - t
 
     def note_frame(self, can_id: int | None = None, checksum_error: bool = False) -> None:
         with self._lock:

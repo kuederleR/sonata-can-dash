@@ -10,6 +10,7 @@
     turnL: $("turn-l"),
     turnR: $("turn-r"),
     brake: $("brake"),
+    brakeSrc: $("brake-src"),
     steerAngle: $("steer-angle"),
     steerNeedle: $("steer-needle"),
     steerRate: $("steer-rate"),
@@ -50,8 +51,8 @@
 
     setOn(els.turnL, v.turn_left);
     setOn(els.turnR, v.turn_right);
-    // Pedal only (DriverOverride==2) — not brake_light, which can stay lit
     setOn(els.brake, v.driver_braking);
+    els.brakeSrc.textContent = v.brake_source ? `(${v.brake_source})` : "";
 
     const angle = v.steering_angle_deg;
     els.steerAngle.textContent = fmt(angle, 1);

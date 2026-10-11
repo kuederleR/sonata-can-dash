@@ -194,7 +194,10 @@ class Simulator:
                         can_id,
                         _pack_msg(
                             can_id,
-                            {"PV_AV_CAN": 0.0 if braking else throttle},
+                            {
+                                "BRAKE_ACT": 1.0 if braking else 0.0,
+                                "PV_AV_CAN": 0.0 if braking else throttle,
+                            },
                         ),
                     )
                 )

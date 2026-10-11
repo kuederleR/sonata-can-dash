@@ -176,6 +176,13 @@ body {
   opacity: 1;
 }
 
+.brake-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
 .brake {
   font-family: var(--font-mono);
   font-size: 0.75rem;
@@ -191,6 +198,13 @@ body {
   color: var(--danger);
   border-color: color-mix(in srgb, var(--danger) 55%, transparent);
   background: color-mix(in srgb, var(--danger) 12%, var(--bg1));
+}
+
+.brake-wrap .src {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
 }
 
 .steer {

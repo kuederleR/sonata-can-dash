@@ -195,8 +195,8 @@ class FrameDecoder:
             return {
                 "accel_long_mps2": d["aBasis"],
                 "brake_light": bool(int(d["BrakeLight"])),
-                # Match openpilot; DriverBraking/BrakeLight alone can latch oddly
                 "driver_braking": override == 2,
+                "brake_source": "TCS13",
                 "standstill": bool(int(d["StandStill"])),
                 "parking_brake": bool(int(d["PBRAKE_ACT"])),
             }
@@ -210,11 +210,18 @@ class FrameDecoder:
         if can_id == 0x316:  # EMS11 — engine RPM
             return {"rpm": d["N"]}
 
-        if can_id == 0x329:  # EMS12 — accelerator pedal only
-            return {
+        if can_id == 0x329:  # EMS12 — pedal; brake fallback when TCS13 absent
+            updates: dict[str, Any] = {
                 "throttle_pct": d["PV_AV_CAN"],
                 "gas_pressed": d["PV_AV_CAN"] > 1.0,
             }
+            # This car's OBD bus has no TCS13 — use BRAKE_ACT, always assign
+            # both True and False so the indicator cannot latch.
+            tcs_age = self.state.msg_age_s(0x394)
+            if tcs_age is None or tcs_age > 0.5:
+                updates["driver_braking"] = int(d["BRAKE_ACT"]) > 0
+                updates["brake_source"] = "EMS12"
+            return updates
 
         if can_id == 0x260:  # EMS16
             return {"gas_pressed": int(d["CF_Ems_AclAct"]) > 0}
