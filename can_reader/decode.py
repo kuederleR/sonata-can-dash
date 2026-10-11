@@ -210,15 +210,19 @@ class FrameDecoder:
         if can_id == 0x316:  # EMS11 — engine RPM
             return {"rpm": d["N"]}
 
-        if can_id == 0x329:  # EMS12 — pedal; expose BRAKE_ACT raw for research
+        if can_id == 0x329:  # EMS12 — pedal + brake (when TCS13 absent)
+            brake_act = int(d["BRAKE_ACT"])
             updates: dict[str, Any] = {
                 "throttle_pct": d["PV_AV_CAN"],
                 "gas_pressed": d["PV_AV_CAN"] > 1.0,
-                "brake_act_raw": int(d["BRAKE_ACT"]),
+                "brake_act_raw": brake_act,
             }
-            # Do NOT drive the BRAKE lamp from BRAKE_ACT — on this OBD tap it
-            # does not follow the pedal (see docs/RESEARCH-brake-signal.md).
-            # Lamp stays on TCS13 only until probe_brake finds a real bit.
+            # Probe on 2017 LF OBD: BRAKE_ACT 1=released, 2=pressed.
+            # Using >0 latches forever (1 and 2 are both >0). Prefer TCS13.
+            tcs_age = self.state.msg_age_s(0x394)
+            if tcs_age is None or tcs_age > 0.5:
+                updates["driver_braking"] = brake_act == 2
+                updates["brake_source"] = "EMS12"
             return updates
 
         if can_id == 0x260:  # EMS16

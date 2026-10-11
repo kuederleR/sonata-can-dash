@@ -13,22 +13,23 @@
 | **0x394** | **TCS13** | **MISS** |
 | 0x354 / 0x367 | LVR11 / LVR12 | MISS |
 
-## Why the dash brake lamp cannot sync yet
+## Working decode on this OBD tap
 
-openpilot's authoritative pedal flag for Hyundai CAN cars is:
+TCS13 is still miss. Use EMS12 instead:
 
 ```text
-TCS13 (0x394) DriverOverride == 2
+EMS12 (0x329) BRAKE_ACT == 2   →  braking
+EMS12 (0x329) BRAKE_ACT == 1   →  released
 ```
 
-That message is **not on this OBD-II tap**. Without it we have no proven pedal bit.
+Verified with `probe_brake` (BRAKE_ACT histogram ~half 1 / half 2 while pumping the pedal).
 
 ### Candidates tried / considered
 
 | Signal | Message | Notes |
 |---|---|---|
 | `DriverOverride` / `DriverBraking` / `BrakeLight` | TCS13 0x394 | Correct for openpilot; **absent here** |
-| `BRAKE_ACT` | EMS12 0x329 bits 32\|2 | Present in DBC; on this car does **not** follow the pedal (dash never turns red when pressed). Likely an EMS↔TCU status, not foot brake |
+| `BRAKE_ACT` | EMS12 0x329 bits 32\|2 | **Confirmed on car:** `1` = released, `2` = pressed. Earlier `> 0` decode latched forever because idle is already 1 |
 | `BRAKE_ACT` | EMS_DCT12 0x81 bits 6\|2 | Alternate EMS→TCU field; presence unknown on this tap |
 | `CF_Lvr_BkeAct` | LVR11 0x354 bit 5 | Brake-interlock for shifter; **LVR11 miss** |
 | `CF_Tcu_BkeOnReq` | TCU13 0x113 | TCU brake-on request; presence unknown |

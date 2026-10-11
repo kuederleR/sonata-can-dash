@@ -58,7 +58,7 @@ python -m can_reader.calibrate_gear --channel can0
 
 Writes `gear_map.json` in the repo root. The dashboard **CAN IDs (age)** strip shows which IDs are present (`TCS13` is miss on this car’s OBD tap).
 
-Brake pedal needs a one-shot probe (TCS13 is absent; EMS12 `BRAKE_ACT` is not the pedal):
+Brake: TCS13 is miss on this OBD tap; dashboard uses **EMS12 `BRAKE_ACT == 2`** (1 = released). Re-probe if needed:
 
 ```bash
 python -m can_reader.probe_brake --channel can0 --duration 25
