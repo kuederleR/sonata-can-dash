@@ -42,9 +42,36 @@
         <span>Steering</span>
         <span><strong id="steer-angle">—</strong>°</span>
       </div>
-      <div class="steer-track">
-        <div id="steer-needle" class="steer-needle"></div>
-        <div class="steer-center"></div>
+      <div class="steer-wheel-stage">
+        <div class="steer-wheel-tick tick-l" aria-hidden="true">L+</div>
+        <div class="steer-wheel-wrap">
+          <svg
+            id="steer-wheel"
+            class="steer-wheel"
+            viewBox="0 0 200 200"
+            role="img"
+            aria-label="Steering wheel"
+          >
+            <!-- Outer rim -->
+            <circle class="sw-rim-outer" cx="100" cy="100" r="92" />
+            <circle class="sw-rim" cx="100" cy="100" r="84" />
+            <circle class="sw-rim-inner" cx="100" cy="100" r="72" />
+            <!-- Spokes: top (marked), left, right, bottom stub -->
+            <g class="sw-spokes">
+              <path d="M100 28 V72" />
+              <path d="M28 100 H72" />
+              <path d="M128 100 H172" />
+              <path d="M100 128 V155" />
+            </g>
+            <!-- Hub -->
+            <circle class="sw-hub" cx="100" cy="100" r="22" />
+            <circle class="sw-hub-core" cx="100" cy="100" r="10" />
+            <!-- Top dead-center marker (rotates with wheel) -->
+            <path class="sw-marker" d="M100 14 L106 28 H94 Z" />
+          </svg>
+          <div class="steer-wheel-center-dot" aria-hidden="true"></div>
+        </div>
+        <div class="steer-wheel-tick tick-r" aria-hidden="true">R−</div>
       </div>
       <div class="steer-rate">Rate <strong id="steer-rate">—</strong> °/s</div>
     </section>

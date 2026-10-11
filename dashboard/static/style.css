@@ -228,36 +228,89 @@ body {
   font-family: var(--font-mono);
 }
 
-.steer-track {
+.steer-wheel-stage {
+  display: grid;
+  grid-template-columns: 1.6rem 1fr 1.6rem;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.85rem 0 0.65rem;
+}
+
+.steer-wheel-tick {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-align: center;
+  opacity: 0.7;
+}
+
+.steer-wheel-wrap {
   position: relative;
+  width: min(100%, 220px);
+  margin: 0 auto;
+  aspect-ratio: 1;
+}
+
+.steer-wheel {
+  width: 100%;
+  height: 100%;
+  display: block;
+  transform-origin: 50% 50%;
+  transition: transform 0.06s linear;
+  will-change: transform;
+}
+
+.sw-rim-outer {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ink) 12%, transparent);
+  stroke-width: 3;
+}
+
+.sw-rim {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ink) 55%, var(--bg2));
+  stroke-width: 14;
+  stroke-linecap: round;
+}
+
+.sw-rim-inner {
+  fill: color-mix(in srgb, var(--bg0) 70%, transparent);
+  stroke: color-mix(in srgb, var(--ink) 10%, transparent);
+  stroke-width: 1;
+}
+
+.sw-spokes path {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ink) 45%, var(--bg2));
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+.sw-hub {
+  fill: var(--bg2);
+  stroke: color-mix(in srgb, var(--ink) 28%, transparent);
+  stroke-width: 2;
+}
+
+.sw-hub-core {
+  fill: color-mix(in srgb, var(--accent) 35%, var(--bg1));
+}
+
+.sw-marker {
+  fill: var(--accent);
+}
+
+.steer-wheel-center-dot {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 3px;
   height: 10px;
-  margin: 0.75rem 0 0.55rem;
-  background: var(--bg2);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.steer-center {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: var(--muted);
-  opacity: 0.5;
-  transform: translateX(-50%);
-}
-
-.steer-needle {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  left: 50%;
-  margin-left: -2px;
-  background: var(--accent);
+  margin-left: -1.5px;
+  background: color-mix(in srgb, var(--muted) 55%, transparent);
   border-radius: 1px;
-  transition: left 0.08s linear;
+  pointer-events: none;
 }
 
 .wheels {

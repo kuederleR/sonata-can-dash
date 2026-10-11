@@ -12,7 +12,7 @@
     brake: $("brake"),
     brakeSrc: $("brake-src"),
     steerAngle: $("steer-angle"),
-    steerNeedle: $("steer-needle"),
+    steerWheel: $("steer-wheel"),
     steerRate: $("steer-rate"),
     wfl: $("wfl"),
     wfr: $("wfr"),
@@ -68,10 +68,10 @@
     els.steerAngle.textContent = fmt(angle, 1);
     els.steerRate.textContent = fmt(v.steering_rate_deg_s, 0);
 
-    // Map ±540° to 5%–95% of track width
-    const clamped = Math.max(-540, Math.min(540, angle ?? 0));
-    const pct = 50 + (clamped / 540) * 45;
-    els.steerNeedle.style.left = `${pct}%`;
+    // SAS: left = +, right = −. CSS rotate(+) is clockwise, so negate:
+    // right (negative CAN) → clockwise wheel, left → counter-clockwise.
+    const visual = -(angle ?? 0);
+    els.steerWheel.style.transform = `rotate(${visual}deg)`;
 
     els.wfl.textContent = fmt(v.wheel_fl_kmh, 1);
     els.wfr.textContent = fmt(v.wheel_fr_kmh, 1);
