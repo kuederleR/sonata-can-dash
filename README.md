@@ -56,7 +56,15 @@ Built-in gear maps cover Sonata LF (`TCU11`/`TCU12`). Optional override if label
 python -m can_reader.calibrate_gear --channel can0
 ```
 
-Writes `gear_map.json` in the repo root. The dashboard **CAN IDs (age)** strip shows whether `EMS12` / `TCU11` / `TCU12` / `TCS13` are present on the bus.
+Writes `gear_map.json` in the repo root. The dashboard **CAN IDs (age)** strip shows which IDs are present (`TCS13` is miss on this car’s OBD tap).
+
+Brake pedal needs a one-shot probe (TCS13 is absent; EMS12 `BRAKE_ACT` is not the pedal):
+
+```bash
+python -m can_reader.probe_brake --channel can0 --duration 25
+```
+
+See [docs/RESEARCH-brake-signal.md](docs/RESEARCH-brake-signal.md).
 
 ## What the dashboard shows
 

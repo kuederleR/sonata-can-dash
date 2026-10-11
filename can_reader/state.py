@@ -29,7 +29,8 @@ class VehicleState:
 
     brake_light: bool | None = None
     driver_braking: bool | None = None
-    brake_source: str | None = None  # TCS13 | EMS12
+    brake_source: str | None = None  # TCS13 | EMS12 | None
+    brake_act_raw: int | None = None  # EMS12 BRAKE_ACT raw 0–3 (debug)
     standstill: bool | None = None
     parking_brake: bool | None = None
     accel_long_mps2: float | None = None

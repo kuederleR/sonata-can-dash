@@ -26,7 +26,11 @@
     msgAges: $("msg-ages"),
   };
 
-  const WATCH = ["WHL_SPD", "SAS", "TCS13", "EMS11", "EMS12", "EMS16", "TCU11", "TCU12", "LVR11", "LVR12", "CGW1"];
+  const WATCH = [
+    "WHL_SPD", "SAS", "TCS13", "TCS11", "ABS11",
+    "EMS11", "EMS12", "EMS16", "EMS_DCT12", "EMS19",
+    "TCU11", "TCU12", "TCU13", "LVR11", "LVR12", "CGW1",
+  ];
 
   function fmt(n, digits = 0) {
     if (n === null || n === undefined || Number.isNaN(n)) return "—";
@@ -52,7 +56,13 @@
     setOn(els.turnL, v.turn_left);
     setOn(els.turnR, v.turn_right);
     setOn(els.brake, v.driver_braking);
-    els.brakeSrc.textContent = v.brake_source ? `(${v.brake_source})` : "";
+    const raw =
+      v.brake_act_raw == null ? "" : ` raw=${v.brake_act_raw}`;
+    els.brakeSrc.textContent = v.brake_source
+      ? `(${v.brake_source}${raw})`
+      : raw
+        ? `(no pedal src; EMS12${raw})`
+        : "(no pedal src)";
 
     const angle = v.steering_angle_deg;
     els.steerAngle.textContent = fmt(angle, 1);

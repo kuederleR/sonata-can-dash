@@ -210,17 +210,15 @@ class FrameDecoder:
         if can_id == 0x316:  # EMS11 — engine RPM
             return {"rpm": d["N"]}
 
-        if can_id == 0x329:  # EMS12 — pedal; brake fallback when TCS13 absent
+        if can_id == 0x329:  # EMS12 — pedal; expose BRAKE_ACT raw for research
             updates: dict[str, Any] = {
                 "throttle_pct": d["PV_AV_CAN"],
                 "gas_pressed": d["PV_AV_CAN"] > 1.0,
+                "brake_act_raw": int(d["BRAKE_ACT"]),
             }
-            # This car's OBD bus has no TCS13 — use BRAKE_ACT, always assign
-            # both True and False so the indicator cannot latch.
-            tcs_age = self.state.msg_age_s(0x394)
-            if tcs_age is None or tcs_age > 0.5:
-                updates["driver_braking"] = int(d["BRAKE_ACT"]) > 0
-                updates["brake_source"] = "EMS12"
+            # Do NOT drive the BRAKE lamp from BRAKE_ACT — on this OBD tap it
+            # does not follow the pedal (see docs/RESEARCH-brake-signal.md).
+            # Lamp stays on TCS13 only until probe_brake finds a real bit.
             return updates
 
         if can_id == 0x260:  # EMS16
