@@ -89,15 +89,19 @@ EMS16 = MessageSpec(
     signals=(SignalSpec("CF_Ems_AclAct", start_bit=62, length=2),),
 )
 
-# EMS12 carries the real accelerator pedal (PV_AV_CAN) on most ICE Hyundais.
-# EMS15 FA_PV_CAN is an alternate that is often absent on the OBD bus.
+# EMS11 carries engine speed (N). EMS12 carries accelerator pedal (PV_AV_CAN).
+# Do not use EMS12 BRAKE_ACT for pedal state — it latches / means ECU status,
+# not foot-brake; openpilot uses TCS13 DriverOverride==2 instead.
+EMS11 = MessageSpec(
+    can_id=0x316,
+    name="EMS11",
+    signals=(SignalSpec("N", start_bit=16, length=16, factor=0.25),),
+)
+
 EMS12 = MessageSpec(
     can_id=0x329,
     name="EMS12",
-    signals=(
-        SignalSpec("BRAKE_ACT", start_bit=32, length=2),
-        SignalSpec("PV_AV_CAN", start_bit=48, length=8, factor=0.3906),
-    ),
+    signals=(SignalSpec("PV_AV_CAN", start_bit=48, length=8, factor=0.3906),),
 )
 
 EMS15 = MessageSpec(
@@ -158,6 +162,7 @@ MESSAGES: tuple[MessageSpec, ...] = (
     TCS13,
     CGW1,
     EMS16,
+    EMS11,
     EMS12,
     EMS15,
     TCU12,
@@ -175,6 +180,7 @@ WATCHED_IDS: dict[int, str] = {
     0x386: "WHL_SPD",
     0x2B0: "SAS",
     0x394: "TCS13",
+    0x316: "EMS11",
     0x329: "EMS12",
     0x260: "EMS16",
     0x547: "EMS15",

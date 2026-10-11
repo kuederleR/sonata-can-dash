@@ -12,6 +12,7 @@ from can_reader.signals import (
     CGW1,
     CLU11,
     CLU12,
+    EMS11,
     EMS12,
     EMS16,
     MDPS12,
@@ -53,6 +54,7 @@ class Simulator:
             CLU11.can_id: 0.02,       # 50 Hz
             SAS11.can_id: 0.02,
             EMS16.can_id: 0.01,
+            EMS11.can_id: 0.01,
             EMS12.can_id: 0.01,
             TCU12.can_id: 0.05,
             TCU11.can_id: 0.05,
@@ -77,6 +79,7 @@ class Simulator:
         angle = 30.0 * math.sin(elapsed * 0.4)
         rate = abs(12.0 * math.cos(elapsed * 0.4))
         throttle = max(0.0, 35.0 + 25.0 * math.sin(elapsed * 0.2))
+        rpm = 800.0 + speed * 28.0 + throttle * 12.0
         braking = speed < 20.0 and math.sin(elapsed * 0.15) < -0.7
         blink_phase = int(elapsed * 2) % 2
         turn_left = blink_phase and (int(elapsed / 8) % 3 == 1)
@@ -182,16 +185,16 @@ class Simulator:
                     )
                 )
 
+            elif can_id == EMS11.can_id:
+                self._queue.append((can_id, _pack_msg(can_id, {"N": rpm})))
+
             elif can_id == EMS12.can_id:
                 self._queue.append(
                     (
                         can_id,
                         _pack_msg(
                             can_id,
-                            {
-                                "BRAKE_ACT": 1.0 if braking else 0.0,
-                                "PV_AV_CAN": 0.0 if braking else throttle,
-                            },
+                            {"PV_AV_CAN": 0.0 if braking else throttle},
                         ),
                     )
                 )

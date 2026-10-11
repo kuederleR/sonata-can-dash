@@ -5,6 +5,7 @@
     speed: $("speed"),
     gear: $("gear"),
     gearSrc: $("gear-src"),
+    rpm: $("rpm"),
     throttle: $("throttle"),
     turnL: $("turn-l"),
     turnR: $("turn-r"),
@@ -24,7 +25,7 @@
     msgAges: $("msg-ages"),
   };
 
-  const WATCH = ["WHL_SPD", "SAS", "TCS13", "EMS12", "EMS16", "TCU11", "TCU12", "LVR11", "LVR12", "CGW1"];
+  const WATCH = ["WHL_SPD", "SAS", "TCS13", "EMS11", "EMS12", "EMS16", "TCU11", "TCU12", "LVR11", "LVR12", "CGW1"];
 
   function fmt(n, digits = 0) {
     if (n === null || n === undefined || Number.isNaN(n)) return "—";
@@ -43,12 +44,14 @@
     els.speed.textContent = fmt(v.speed_kmh, 0);
     els.gear.textContent = v.gear ?? (v.gear_raw != null ? `RAW:${v.gear_raw}` : "—");
     els.gearSrc.textContent = v.gear_source ? `(${v.gear_source})` : "";
+    els.rpm.textContent = v.rpm == null ? "—" : fmt(v.rpm, 0);
     els.throttle.textContent =
       v.throttle_pct == null ? "—" : `${fmt(v.throttle_pct, 0)}%`;
 
     setOn(els.turnL, v.turn_left);
     setOn(els.turnR, v.turn_right);
-    setOn(els.brake, v.brake_light || v.driver_braking);
+    // Pedal only (DriverOverride==2) — not brake_light, which can stay lit
+    setOn(els.brake, v.driver_braking);
 
     const angle = v.steering_angle_deg;
     els.steerAngle.textContent = fmt(angle, 1);

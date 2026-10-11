@@ -38,6 +38,7 @@ class VehicleState:
 
     gas_pressed: bool | None = None
     throttle_pct: float | None = None
+    rpm: float | None = None
 
     gear_raw: int | None = None
     gear: str | None = None  # mapped label if gear_map.json present

@@ -108,7 +108,8 @@ body {
   margin-top: 0.75rem;
   display: flex;
   justify-content: center;
-  gap: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem 1.35rem;
   color: var(--muted);
   font-size: 0.9rem;
 }
