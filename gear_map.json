@@ -1,6 +1,3 @@
 {
-  "1": "P",
-  "2": "R",
-  "3": "N",
-  "4": "D"
+  "_comment": "Optional overrides for gear raw→label applied to all gear sources. Prefer built-in TCU12/TCU11/LVR12 maps; only add overrides after calibrate_gear if a specific raw is wrong."
 }

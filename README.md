@@ -50,13 +50,13 @@ python run.py --channel can0 --bitrate 500000
 
 5. On your phone (same Wi-Fi as the Jetson, or phone hotspot): **http://\<jetson-ip\>:8080**
 
-Calibrate gear labels once (DBC has no PRNDL enum):
+Built-in gear maps cover Sonata LF (`TCU11`/`TCU12`). Optional override if labels are wrong:
 
 ```bash
 python -m can_reader.calibrate_gear --channel can0
 ```
 
-Writes `gear_map.json` in the repo root.
+Writes `gear_map.json` in the repo root. The dashboard **CAN IDs (age)** strip shows whether `EMS12` / `TCU11` / `TCU12` / `TCS13` are present on the bus.
 
 ## What the dashboard shows
 

@@ -20,7 +20,7 @@
     <section class="speed-block" aria-label="Vehicle speed">
       <div class="speed-value"><span id="speed">--</span><span class="unit">km/h</span></div>
       <div class="speed-sub">
-        <span>Gear <strong id="gear">—</strong></span>
+        <span>Gear <strong id="gear">—</strong> <span id="gear-src" class="src"></span></span>
         <span>Throttle <strong id="throttle">—</strong></span>
       </div>
     </section>
@@ -50,6 +50,11 @@
       <div class="wheel"><span class="wlab">FR</span><span id="wfr" class="wval">—</span></div>
       <div class="wheel"><span class="wlab">RL</span><span id="wrl" class="wval">—</span></div>
       <div class="wheel"><span class="wlab">RR</span><span id="wrr" class="wval">—</span></div>
+    </section>
+
+    <section class="msg-ages" aria-label="Message presence">
+      <div class="msg-ages-label">CAN IDs (age)</div>
+      <div id="msg-ages" class="msg-ages-grid"></div>
     </section>
 
     <footer class="health" aria-label="Connection health">

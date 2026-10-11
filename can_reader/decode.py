@@ -17,6 +17,30 @@ log = logging.getLogger(__name__)
 # Default location for gear calibration output (repo root when run via run.py)
 DEFAULT_GEAR_MAP = Path(__file__).resolve().parent.parent / "gear_map.json"
 
+# openpilot hyundai_can.dbc VAL_ tables (Sonata LF uses TCU_GEARS → CUR_GR)
+CUR_GR_MAP: dict[int, str] = {
+    0: "P",
+    1: "D",
+    2: "D",
+    3: "D",
+    4: "D",
+    5: "D",
+    6: "D",
+    7: "D",
+    8: "D",
+    14: "R",
+}
+
+# LVR12 CF_Lvr_Gear VAL_ (and often matches G_SEL_DISP)
+LVR12_GEAR_MAP: dict[int, str] = {
+    0: "P",
+    5: "D",
+    6: "N",
+    7: "R",
+    8: "S",
+    12: "T",
+}
+
 
 def extract_bits(data: bytes, start_bit: int, length: int, signed: bool = False) -> int:
     """Extract an Intel (little-endian) bitfield from a CAN payload."""
@@ -78,7 +102,12 @@ def load_gear_map(path: Path | None = None) -> dict[int, str]:
         return {}
     try:
         raw = json.loads(path.read_text())
-        return {int(k): str(v) for k, v in raw.items()}
+        out: dict[int, str] = {}
+        for k, v in raw.items():
+            if isinstance(k, str) and not k.lstrip("-").isdigit():
+                continue  # skip _comment / metadata keys
+            out[int(k)] = str(v)
+        return out
     except (OSError, json.JSONDecodeError, ValueError) as exc:
         log.warning("Failed to load gear map %s: %s", path, exc)
         return {}
@@ -94,6 +123,7 @@ class FrameDecoder:
         gear_map_path: Path | None = None,
     ) -> None:
         self.state = state
+        # User calibration overrides built-in maps when present
         self.gear_map = gear_map if gear_map is not None else load_gear_map(gear_map_path)
 
     def handle_frame(self, can_id: int, data: bytes) -> None:
@@ -104,15 +134,30 @@ class FrameDecoder:
                 log.debug("WHL_SPD11 checksum mismatch (continuing decode)")
 
         decoded = decode_message(can_id, data)
-        self.state.note_frame(checksum_error=checksum_error)
+        self.state.note_frame(can_id=can_id, checksum_error=checksum_error)
         if decoded is None:
             return
 
         updates = self._to_vehicle_updates(can_id, decoded)
-        # Always stamp yaw stub so the field stays explicit
         updates["yaw_rate_deg_s"] = yaw_rate_deg_s()
         if updates:
             self.state.update_vehicle(**updates)
+
+    # Prefer cluster/lever PRNDL over TCU CUR_GR (which collapses D1–D8 to "D")
+    _GEAR_PRIORITY = {"TCU11": 3, "LVR12": 3, "TCU12": 2, "LVR11": 1}
+
+    def _map_gear(self, raw: int, builtin: dict[int, str], source: str) -> dict[str, Any]:
+        current_src = self.state.gear_source()
+        cur_pri = self._GEAR_PRIORITY.get(current_src or "", 0)
+        new_pri = self._GEAR_PRIORITY.get(source, 0)
+        if new_pri < cur_pri:
+            return {}
+        label = self.gear_map.get(raw)
+        if label is None:
+            label = builtin.get(raw)
+        if label is None:
+            label = f"RAW:{raw}"
+        return {"gear_raw": raw, "gear": label, "gear_source": source}
 
     def _to_vehicle_updates(self, can_id: int, d: dict[str, float]) -> dict[str, Any]:
         if can_id == 0x4F1:  # CLU11
@@ -145,7 +190,7 @@ class FrameDecoder:
                 "steering_rate_deg_s": d["SAS_Speed"],
             }
 
-        if can_id == 0x394:  # TCS13
+        if can_id == 0x394:  # TCS13 — openpilot brakePressed = DriverOverride == 2
             override = int(d["DriverOverride"])
             return {
                 "accel_long_mps2": d["aBasis"],
@@ -161,19 +206,34 @@ class FrameDecoder:
                 "turn_right": int(d["CF_Gway_TurnSigRh"]) > 0,
             }
 
+        if can_id == 0x329:  # EMS12 — primary pedal + secondary brake
+            updates: dict[str, Any] = {
+                "throttle_pct": d["PV_AV_CAN"],
+                "gas_pressed": d["PV_AV_CAN"] > 1.0,
+            }
+            # BRAKE_ACT > 0 is a useful fallback when TCS13 is missing
+            if int(d["BRAKE_ACT"]) > 0:
+                updates["driver_braking"] = True
+            return updates
+
         if can_id == 0x260:  # EMS16
             return {"gas_pressed": int(d["CF_Ems_AclAct"]) > 0}
 
-        if can_id == 0x547:  # EMS15
-            return {"throttle_pct": d["FA_PV_CAN"]}
+        if can_id == 0x547:  # EMS15 alternate pedal
+            return {"throttle_pct": d["FA_PV_CAN"], "gas_pressed": d["FA_PV_CAN"] > 1.0}
 
-        if can_id == 0x354:  # LVR11
-            raw = int(d["CF_Lvr_GearInf"])
-            label = self.gear_map.get(raw)
-            return {
-                "gear_raw": raw,
-                "gear": label if label is not None else f"RAW:{raw}",
-            }
+        if can_id == 0x112:  # TCU12 CUR_GR (Sonata LF TCU_GEARS)
+            return self._map_gear(int(d["CUR_GR"]), CUR_GR_MAP, "TCU12")
+
+        if can_id == 0x111:  # TCU11 G_SEL_DISP — cluster gear display
+            # Prefer LVR12-style PRNDL mapping; falls back to RAW
+            return self._map_gear(int(d["G_SEL_DISP"]), LVR12_GEAR_MAP, "TCU11")
+
+        if can_id == 0x367:  # LVR12
+            return self._map_gear(int(d["CF_Lvr_Gear"]), LVR12_GEAR_MAP, "LVR12")
+
+        if can_id == 0x354:  # LVR11 — last-resort / calibration helper
+            return self._map_gear(int(d["CF_Lvr_GearInf"]), {}, "LVR11")
 
         if can_id == 0x251:  # MDPS12
             return {"steering_torque_nm": d["CR_Mdps_StrColTq"]}

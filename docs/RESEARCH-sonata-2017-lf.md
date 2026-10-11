@@ -34,8 +34,8 @@ All IDs are 11-bit. DLC = OBD-II pins 6/14, 500 kbps. Rates marked † are from 
 | 6 | Brake pedal (driver braking) | TCS13 | **0x394** / 916 | `DriverBraking`: bit 55; `DriverOverride`: bits 45\|2, `== 2` means driver braking (openpilot's `brakePressed` condition) | 100 Hz † |
 | 7 | Brake pressure (analog) | — | — | **Not decoded** (see §D) | — |
 | 8 | Turn signals L/R | CGW1 | **0x541** / 1345 | `CF_Gway_TurnSigLh`: bits 19\|2; `CF_Gway_TurnSigRh`: bits 62\|2 (lamp states; openpilot thresholds at 50% duty). Also `CF_Gway_TSigLHSw/RHSw` (bits 42/41, stalk switches), `CF_Gway_HazardSw` (bits 33\|2) | not documented — measure |
-| 9 | Gas pedal | EMS16 | **0x260** / 608 | `CF_Ems_AclAct`: bits 62\|2 (openpilot's `gasPressed` for ICE). Alternates: `FA_PV_CAN` in EMS15 (0x547, 0–100%) | 100 Hz † (for 0x260) |
-| 10 | Gear (PRNDL) | LVR11 | **0x354** / 852 | `CF_Lvr_GearInf`: bits 0\|4 (lever position). **Enum values not in DBC** — observe and map on the car | not documented — measure |
+| 9 | Gas pedal | EMS12 / EMS16 | **0x329** / 809; **0x260** / 608 | **Primary:** `PV_AV_CAN` in EMS12 (bits 48\|8, factor 0.3906 → %). `BRAKE_ACT` bits 32\|2 also on EMS12. EMS16 `CF_Ems_AclAct` (bits 62\|2) is boolean only. EMS15 `FA_PV_CAN` (0x547) often absent on OBD | 100 Hz † |
+| 10 | Gear (PRNDL) | TCU12 / TCU11 | **0x112** / 274; **0x111** / 273 | Sonata LF is `TCU_GEARS`: prefer `CUR_GR` (TCU12 bits 8\|4; 0=P, 14=R, 1–8=D) or `G_SEL_DISP` (TCU11 bits 8\|4; LVR-style 0/7/6/5). LVR11/LVR12 are fallbacks | not documented — measure |
 | 11 | Cruise state | CLU11 / EMS16 | 0x4F1 / 0x260 | Buttons: `CF_Clu_CruiseSwState` (0\|3), `CF_Clu_CruiseSwMain` (bit 3) in CLU11; lamps `CRUISE_LAMP_M/S` (bits 25/26) in EMS16. No SCC state (no SCC11/12 on this car) | 50 Hz † (CLU11) |
 | 12 | Yaw rate | — | — | **Not decoded** (see §D) | — |
 
@@ -61,7 +61,7 @@ Bonus signals in the same DBC useful for fusion/sanity: `aBasis` longitudinal ac
 | Yaw rate not decoded | No ESP12/yaw message in `hyundai_2015_ccan.dbc` (**[verified live]** — file has no yaw/lateral-accel signal) | Derive yaw rate from `SAS_Angle` + wheel-speed via kinematic bicycle model, or use a Jetson-side IMU. (0x145 ESP12 likely exists on the wire — standard Hyundai ESC message — but is undecoded; DIY reverse-engineering possible, **[inferred]**) |
 | Lateral acceleration not decoded | Same as above | Jetson IMU, or derive from yaw rate × speed |
 | Analog brake pressure/pedal position | Only binary-ish signals: `BrakeLight`, `DriverBraking`, `DriverOverride` in TCS13 0x394 **[verified live]** | Use `DriverOverride == 2` / `BrakeLight` for brake reaction in FCW; no analog CAN fallback exists (J1979 has no brake-pedal PID either) |
-| Gear enum values | `CF_Lvr_GearInf` (LVR11 0x354) present but no VAL_ table in DBC **[verified live]** | Log LVR11 while shifting P-R-N-D on the car and map the 4-bit values once |
+| Gear enum values | Prefer TCU11/TCU12 built-in maps; LVR11 has no VAL_ table **[verified live]** | If labels wrong, run `calibrate_gear` watching TCU11/TCU12 and write `gear_map.json` |
 | Broadcast rates | Not in either DBC (no `GenMsgCycleTime`) **[verified live]** | Use §B † rates as starting expectations; measure the rest with `candump` timestamps on the car |
 | Vehicle-speed unit | `CF_Clu_Vanz` is km/h or mph depending on cluster setting | Read `CF_Clu_SPEED_UNIT` (0 = metric) or just use WHL_SPD11 (always km/h) |
 | J1979 PID 0x0D | Works as a fallback (diagnostic access via OBD-II is proven by fingerprinting), but polling is slow (~10–50 Hz shared) | Prefer broadcast `WHL_SPD11`/`CLU11` at 50–100 Hz; keep PID 0x0D only as a sanity check |

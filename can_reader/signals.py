@@ -89,16 +89,46 @@ EMS16 = MessageSpec(
     signals=(SignalSpec("CF_Ems_AclAct", start_bit=62, length=2),),
 )
 
+# EMS12 carries the real accelerator pedal (PV_AV_CAN) on most ICE Hyundais.
+# EMS15 FA_PV_CAN is an alternate that is often absent on the OBD bus.
+EMS12 = MessageSpec(
+    can_id=0x329,
+    name="EMS12",
+    signals=(
+        SignalSpec("BRAKE_ACT", start_bit=32, length=2),
+        SignalSpec("PV_AV_CAN", start_bit=48, length=8, factor=0.3906),
+    ),
+)
+
 EMS15 = MessageSpec(
     can_id=0x547,
     name="EMS15",
     signals=(SignalSpec("FA_PV_CAN", start_bit=8, length=8, factor=0.3906),),
 )
 
+# Sonata LF is TCU_GEARS in openpilot — prefer TCU12 CUR_GR / TCU11 G_SEL_DISP.
+TCU12 = MessageSpec(
+    can_id=0x112,
+    name="TCU12",
+    signals=(SignalSpec("CUR_GR", start_bit=8, length=4),),
+)
+
+TCU11 = MessageSpec(
+    can_id=0x111,
+    name="TCU11",
+    signals=(SignalSpec("G_SEL_DISP", start_bit=8, length=4),),
+)
+
 LVR11 = MessageSpec(
     can_id=0x354,
     name="LVR11",
     signals=(SignalSpec("CF_Lvr_GearInf", start_bit=0, length=4),),
+)
+
+LVR12 = MessageSpec(
+    can_id=0x367,
+    name="LVR12",
+    signals=(SignalSpec("CF_Lvr_Gear", start_bit=32, length=4),),
 )
 
 MDPS12 = MessageSpec(
@@ -128,10 +158,29 @@ MESSAGES: tuple[MessageSpec, ...] = (
     TCS13,
     CGW1,
     EMS16,
+    EMS12,
     EMS15,
+    TCU12,
+    TCU11,
     LVR11,
+    LVR12,
     MDPS12,
     CLU12,
 )
 
 MESSAGES_BY_ID: dict[int, MessageSpec] = {m.can_id: m for m in MESSAGES}
+
+# Friendly names for dashboard "which IDs are alive" strip
+WATCHED_IDS: dict[int, str] = {
+    0x386: "WHL_SPD",
+    0x2B0: "SAS",
+    0x394: "TCS13",
+    0x329: "EMS12",
+    0x260: "EMS16",
+    0x547: "EMS15",
+    0x112: "TCU12",
+    0x111: "TCU11",
+    0x354: "LVR11",
+    0x367: "LVR12",
+    0x541: "CGW1",
+}

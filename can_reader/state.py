@@ -41,6 +41,7 @@ class VehicleState:
 
     gear_raw: int | None = None
     gear: str | None = None  # mapped label if gear_map.json present
+    gear_source: str | None = None  # which message produced gear
 
     odometer_km: float | None = None
 
@@ -57,6 +58,8 @@ class Health:
     checksum_errors: int = 0
     total_frames: int = 0
     last_frame_monotonic: float | None = None
+    # can_id hex -> seconds since last seen (filled in snapshot)
+    msg_age_s: dict[str, float | None] = field(default_factory=dict)
 
 
 @dataclass
@@ -66,6 +69,7 @@ class SharedState:
     vehicle: VehicleState = field(default_factory=VehicleState)
     health: Health = field(default_factory=Health)
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+    _msg_last: dict[int, float] = field(default_factory=dict, repr=False)
 
     def update_vehicle(self, **kwargs: Any) -> None:
         with self._lock:
@@ -73,12 +77,18 @@ class SharedState:
                 if hasattr(self.vehicle, key):
                     setattr(self.vehicle, key, value)
 
-    def note_frame(self, checksum_error: bool = False) -> None:
+    def gear_source(self) -> str | None:
+        with self._lock:
+            return self.vehicle.gear_source
+
+    def note_frame(self, can_id: int | None = None, checksum_error: bool = False) -> None:
         with self._lock:
             now = time.monotonic()
             self.health.total_frames += 1
             self.health.last_frame_monotonic = now
             self.health.connected = True
+            if can_id is not None:
+                self._msg_last[can_id] = now
             if checksum_error:
                 self.health.checksum_errors += 1
 
@@ -96,8 +106,15 @@ class SharedState:
                 age = now - self.health.last_frame_monotonic
             health = asdict(self.health)
             health["last_frame_age_s"] = age
-            # Don't leak internal monotonic timestamp to clients
             health.pop("last_frame_monotonic", None)
+            # Per-message ages for watched IDs (set by decoder via note_frame)
+            from can_reader.signals import WATCHED_IDS
+
+            msg_age: dict[str, float | None] = {}
+            for cid, name in WATCHED_IDS.items():
+                t = self._msg_last.get(cid)
+                msg_age[name] = None if t is None else round(now - t, 3)
+            health["msg_age_s"] = msg_age
             return {
                 "vehicle": asdict(self.vehicle),
                 "health": health,

@@ -12,13 +12,14 @@ from can_reader.signals import (
     CGW1,
     CLU11,
     CLU12,
-    EMS15,
+    EMS12,
     EMS16,
-    LVR11,
     MDPS12,
     MESSAGES_BY_ID,
     SAS11,
     TCS13,
+    TCU11,
+    TCU12,
     WHL_SPD11,
 )
 
@@ -45,7 +46,6 @@ class Simulator:
         self._t0 = time.monotonic()
         self._alive = 0
         self._queue: deque[tuple[int, bytes]] = deque()
-        self._last_emit = 0.0
         # Approximate rates (Hz)
         self._period = {
             WHL_SPD11.can_id: 0.01,   # 100 Hz
@@ -53,9 +53,10 @@ class Simulator:
             CLU11.can_id: 0.02,       # 50 Hz
             SAS11.can_id: 0.02,
             EMS16.can_id: 0.01,
-            EMS15.can_id: 0.05,
+            EMS12.can_id: 0.01,
+            TCU12.can_id: 0.05,
+            TCU11.can_id: 0.05,
             CGW1.can_id: 0.05,
-            LVR11.can_id: 0.1,
             MDPS12.can_id: 0.02,
             CLU12.can_id: 0.5,
         }
@@ -70,22 +71,20 @@ class Simulator:
 
     def _maybe_enqueue(self, now: float) -> None:
         elapsed = now - self._t0
-        # Synthetic "drive" profile
-        speed = 40.0 + 25.0 * math.sin(elapsed * 0.15)  # km/h
+        speed = 40.0 + 25.0 * math.sin(elapsed * 0.15)
         if speed < 0:
             speed = 0.0
-        angle = 30.0 * math.sin(elapsed * 0.4)  # deg
+        angle = 30.0 * math.sin(elapsed * 0.4)
         rate = abs(12.0 * math.cos(elapsed * 0.4))
         throttle = max(0.0, 35.0 + 25.0 * math.sin(elapsed * 0.2))
         braking = speed < 20.0 and math.sin(elapsed * 0.15) < -0.7
-        blink_phase = int(elapsed * 2) % 2  # ~1 Hz blink
+        blink_phase = int(elapsed * 2) % 2
         turn_left = blink_phase and (int(elapsed / 8) % 3 == 1)
         turn_right = blink_phase and (int(elapsed / 8) % 3 == 2)
-        gear_cycle = ["P", "R", "N", "D"]
-        # Map to plausible raw values for demo (until calibrated)
-        gear_raw_map = {"P": 1, "R": 2, "N": 3, "D": 4}
-        gear_label = gear_cycle[min(3, int(elapsed / 12) % 4)] if speed < 5 else "D"
-        gear_raw = gear_raw_map[gear_label]
+        # G_SEL_DISP / LVR12-style: P=0 R=7 N=6 D=5
+        gear_cycle = [("P", 0, 0), ("R", 7, 14), ("N", 6, 0), ("D", 5, 3)]
+        idx = min(3, int(elapsed / 12) % 4) if speed < 5 else 3
+        gear_label, g_sel, cur_gr = gear_cycle[idx]
         torque = 0.5 * math.sin(elapsed * 0.5)
         odo = 45231.0 + elapsed * 0.01
 
@@ -96,7 +95,6 @@ class Simulator:
 
             if can_id == WHL_SPD11.can_id:
                 self._alive = (self._alive + 1) % 16
-                # Pack speeds + alive counter; checksum applied in _pack_msg
                 data = _empty_payload(8)
                 for name, val in (
                     ("WHL_SPD_FL", speed),
@@ -106,7 +104,6 @@ class Simulator:
                 ):
                     spec = next(s for s in WHL_SPD11.signals if s.name == name)
                     pack_signal(data, spec, val)
-                # Alive counter split LSB/MSB
                 lsb_spec = next(
                     s for s in WHL_SPD11.signals if s.name == "WHL_SPD_AliveCounter_LSB"
                 )
@@ -124,10 +121,7 @@ class Simulator:
                         can_id,
                         _pack_msg(
                             can_id,
-                            {
-                                "CF_Clu_Vanz": speed,
-                                "CF_Clu_SPEED_UNIT": 0.0,  # metric
-                            },
+                            {"CF_Clu_Vanz": speed, "CF_Clu_SPEED_UNIT": 0.0},
                             dlc=4,
                         ),
                     )
@@ -137,11 +131,7 @@ class Simulator:
                 self._queue.append(
                     (
                         can_id,
-                        _pack_msg(
-                            can_id,
-                            {"SAS_Angle": angle, "SAS_Speed": rate},
-                            dlc=5,
-                        ),
+                        _pack_msg(can_id, {"SAS_Angle": angle, "SAS_Speed": rate}, dlc=5),
                     )
                 )
 
@@ -183,25 +173,37 @@ class Simulator:
                         can_id,
                         _pack_msg(
                             can_id,
-                            {"CF_Ems_AclAct": 1.0 if throttle > 5 and not braking else 0.0},
+                            {
+                                "CF_Ems_AclAct": (
+                                    1.0 if throttle > 5 and not braking else 0.0
+                                )
+                            },
                         ),
                     )
                 )
 
-            elif can_id == EMS15.can_id:
+            elif can_id == EMS12.can_id:
                 self._queue.append(
                     (
                         can_id,
-                        _pack_msg(can_id, {"FA_PV_CAN": 0.0 if braking else throttle}),
+                        _pack_msg(
+                            can_id,
+                            {
+                                "BRAKE_ACT": 1.0 if braking else 0.0,
+                                "PV_AV_CAN": 0.0 if braking else throttle,
+                            },
+                        ),
                     )
                 )
 
-            elif can_id == LVR11.can_id:
+            elif can_id == TCU11.can_id:
                 self._queue.append(
-                    (
-                        can_id,
-                        _pack_msg(can_id, {"CF_Lvr_GearInf": float(gear_raw)}, dlc=7),
-                    )
+                    (can_id, _pack_msg(can_id, {"G_SEL_DISP": float(g_sel)}))
+                )
+
+            elif can_id == TCU12.can_id:
+                self._queue.append(
+                    (can_id, _pack_msg(can_id, {"CUR_GR": float(cur_gr)}))
                 )
 
             elif can_id == MDPS12.can_id:
@@ -211,9 +213,5 @@ class Simulator:
 
             elif can_id == CLU12.can_id:
                 self._queue.append(
-                    (
-                        can_id,
-                        _pack_msg(can_id, {"CF_Clu_Odometer": odo}, dlc=4),
-                    )
+                    (can_id, _pack_msg(can_id, {"CF_Clu_Odometer": odo}, dlc=4))
                 )
-

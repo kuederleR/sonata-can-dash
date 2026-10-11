@@ -4,6 +4,7 @@
   const els = {
     speed: $("speed"),
     gear: $("gear"),
+    gearSrc: $("gear-src"),
     throttle: $("throttle"),
     turnL: $("turn-l"),
     turnR: $("turn-r"),
@@ -20,7 +21,10 @@
     age: $("age"),
     chk: $("chk"),
     conn: $("conn"),
+    msgAges: $("msg-ages"),
   };
+
+  const WATCH = ["WHL_SPD", "SAS", "TCS13", "EMS12", "EMS16", "TCU11", "TCU12", "LVR11", "LVR12", "CGW1"];
 
   function fmt(n, digits = 0) {
     if (n === null || n === undefined || Number.isNaN(n)) return "—";
@@ -38,6 +42,7 @@
 
     els.speed.textContent = fmt(v.speed_kmh, 0);
     els.gear.textContent = v.gear ?? (v.gear_raw != null ? `RAW:${v.gear_raw}` : "—");
+    els.gearSrc.textContent = v.gear_source ? `(${v.gear_source})` : "";
     els.throttle.textContent =
       v.throttle_pct == null ? "—" : `${fmt(v.throttle_pct, 0)}%`;
 
@@ -69,6 +74,14 @@
     els.conn.textContent = online ? "LIVE" : "OFFLINE";
     els.conn.classList.toggle("online", online);
     els.conn.classList.toggle("offline", !online);
+
+    const ages = h.msg_age_s || {};
+    els.msgAges.innerHTML = WATCH.map((name) => {
+      const a = ages[name];
+      const miss = a === null || a === undefined || a > 2;
+      const label = miss ? "miss" : `${Number(a).toFixed(1)}s`;
+      return `<span class="${miss ? "miss" : "ok"}">${name} ${label}</span>`;
+    }).join("");
   }
 
   function connect() {
